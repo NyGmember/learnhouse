@@ -74,3 +74,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:3000/ || exit 1
 
 ENTRYPOINT ["/bin/sh", "/app/docker-entrypoint.sh"]
+
+# Alias stage for Portainer / tools targeting frontend-runner
+FROM runner AS frontend-runner

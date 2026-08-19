@@ -75,3 +75,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 # Use entrypoint script
 ENTRYPOINT ["/bin/bash", "/app/docker-entrypoint.sh"]
+
+# Alias stage for Portainer / tools targeting backend-runner
+FROM runner AS backend-runner

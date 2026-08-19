@@ -39,3 +39,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
 USER collab
 
 CMD ["node", "dist/index.js"]
+
+# Alias stage for Portainer / tools targeting collab-runner
+FROM runner AS collab-runner

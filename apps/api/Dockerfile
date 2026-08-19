@@ -5,9 +5,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     build-essential \
     libpq-dev \
-    cargo \
     ca-certificates \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
     && rm -rf /var/lib/apt/lists/*
+
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 COPY --from=ghcr.io/astral-sh/uv:0.10.7 /uv /uvx /bin/
 

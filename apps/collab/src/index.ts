@@ -5,7 +5,7 @@ import { Database } from '@hocuspocus/extension-database'
 import jwt from 'jsonwebtoken'
 import Redis from 'ioredis'
 
-const PORT = parseInt(process.env.COLLAB_PORT || '4000', 10)
+const PORT = parseInt(process.env.COLLAB_PORT || process.env.PORT || '1234', 10)
 const API_URL = process.env.LEARNHOUSE_API_URL || 'http://localhost:8000'
 const SECRET_KEY = process.env.LEARNHOUSE_AUTH_JWT_SECRET_KEY || ''
 const INTERNAL_KEY = process.env.COLLAB_INTERNAL_KEY || ''

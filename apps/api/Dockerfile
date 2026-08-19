@@ -1,27 +1,18 @@
-FROM python:3.12-slim-bookworm
+# ── Build Stage ─────────────────────────────────────────────────────────────
+FROM python:3.12-slim-bookworm AS builder
 
-# Install curl and netcat for health checks and service waiting, plus ffmpeg
-# for video faststart remuxing (moves the MP4 moov atom to the front so long
-# videos stream smoothly).
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    netcat-openbsd \
     build-essential \
-    ffmpeg \
     libpq-dev \
+    cargo \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:0.10.7 /uv /uvx /bin/
 
-# UV_COMPILE_BYTECODE bakes .pyc into the image for fast cold starts.
 ENV UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy \
-    PYTHONUNBUFFERED=1 \
-    PYTHONIOENCODING=utf-8 \
-    PORT=8000 \
-    LEARNHOUSE_PORT=8000 \
-    HOSTNAME=0.0.0.0
+    UV_LINK_MODE=copy
 
 WORKDIR /app
 
@@ -38,6 +29,32 @@ RUN if [ "$LEARNHOUSE_PUBLIC" = "true" ]; then rm -rf /app/ee; fi
 
 # Sync again so the lockfile is verified against the copied project
 RUN uv sync
+
+# ── Production Runner Stage ──────────────────────────────────────────────────
+FROM python:3.12-slim-bookworm AS runner
+
+# Install runtime dependencies: curl/netcat for healthchecks, ffmpeg for video streaming, libpq5 for PostgreSQL
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    netcat-openbsd \
+    ffmpeg \
+    libpq5 \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:0.10.7 /uv /uvx /bin/
+
+ENV UV_COMPILE_BYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONIOENCODING=utf-8 \
+    PORT=8000 \
+    LEARNHOUSE_PORT=8000 \
+    HOSTNAME=0.0.0.0
+
+WORKDIR /app
+
+# Copy built application and virtual environment from builder
+COPY --from=builder /app /app
 
 # Ensure entrypoint script is executable
 RUN chmod +x /app/docker-entrypoint.sh

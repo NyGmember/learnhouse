@@ -120,3 +120,6 @@ ENV PORT=8000 LEARNHOUSE_PORT=9000 COLLAB_PORT=4000 HOSTNAME=0.0.0.0 LEARNHOUSE_
 EXPOSE 80 9000 4000
 
 CMD ["sh", "/app/start.sh"]
+
+# Alias stage for backward compatibility with Portainer / tools targeting backend-runner
+FROM runner AS backend-runner

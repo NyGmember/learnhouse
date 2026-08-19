@@ -1,4 +1,4 @@
-FROM oven/bun:1-debian-slim AS base
+FROM oven/bun:1-slim AS base
 
 # Stage 1: Install dependencies only when needed
 FROM base AS deps

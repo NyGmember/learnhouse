@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     netcat-openbsd \
     build-essential \
     ffmpeg \
+    libpq-dev \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 

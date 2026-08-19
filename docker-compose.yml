@@ -1,0 +1,149 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: learnhouse-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-learnhouse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-learnhouse}
+      POSTGRES_DB: ${POSTGRES_DB:-learnhouse}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ${DATA_DIR:-/volume1/docker/learnhouse}/postgres_data:/var/lib/postgresql/data
+    networks:
+      - learnhouse-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-learnhouse} -d ${POSTGRES_DB:-learnhouse}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: learnhouse-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - ${DATA_DIR:-/volume1/docker/learnhouse}/redis_data:/data
+    networks:
+      - learnhouse-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+      args:
+        LEARNHOUSE_PUBLIC: "false"
+    container_name: learnhouse-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      PORT: 8000
+      LEARNHOUSE_PORT: 8000
+      HOSTNAME: 0.0.0.0
+      LEARNHOUSE_SQL_CONNECTION_STRING: postgresql+asyncpg://${POSTGRES_USER:-learnhouse}:${POSTGRES_PASSWORD:-learnhouse}@postgres:5432/${POSTGRES_DB:-learnhouse}
+      LEARNHOUSE_REDIS_CONNECTION_STRING: redis://redis:6379
+      LEARNHOUSE_REDIS_URL: redis://redis:6379
+      LEARNHOUSE_AUTH_JWT_SECRET_KEY: ${SECRET_KEY:-${LEARNHOUSE_AUTH_JWT_SECRET_KEY}}
+      COLLAB_INTERNAL_KEY: ${COLLAB_INTERNAL_KEY:-learnhouse-internal-collab-key}
+      LEARNHOUSE_DOMAIN: ${DOMAIN:-localhost}
+      LEARNHOUSE_FRONTEND_DOMAIN: ${FRONTEND_DOMAIN:-localhost:8280}
+      LEARNHOUSE_SSL: ${SSL:-false}
+      LEARNHOUSE_DEVELOPMENT_MODE: ${DEVELOPMENT_MODE:-false}
+      LEARNHOUSE_IS_AI_ENABLED: ${IS_AI_ENABLED:-true}
+      LEARNHOUSE_GEMINI_API_KEY: ${GEMINI_API_KEY}
+      LEARNHOUSE_CONTENT_DELIVERY_TYPE: ${CONTENT_DELIVERY_TYPE:-filesystem}
+      LEARNHOUSE_SITE_NAME: ${SITE_NAME:-LearnHouse}
+      LEARNHOUSE_SITE_DESCRIPTION: ${SITE_DESCRIPTION:-Open Source Learning Management System}
+      LEARNHOUSE_CONTACT_EMAIL: ${CONTACT_EMAIL:-admin@example.com}
+    ports:
+      - "${API_PORT:-8290}:8000"
+    volumes:
+      - ${DATA_DIR:-/volume1/docker/learnhouse}/storage:/app/content
+    networks:
+      - learnhouse-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  collab:
+    build:
+      context: ./apps/collab
+      dockerfile: Dockerfile
+    container_name: learnhouse-collab
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    environment:
+      PORT: 1234
+      COLLAB_PORT: 1234
+      LEARNHOUSE_API_URL: http://api:8000
+      LEARNHOUSE_AUTH_JWT_SECRET_KEY: ${SECRET_KEY:-${LEARNHOUSE_AUTH_JWT_SECRET_KEY}}
+      COLLAB_INTERNAL_KEY: ${COLLAB_INTERNAL_KEY:-learnhouse-internal-collab-key}
+      LEARNHOUSE_REDIS_URL: redis://redis:6379
+      COLLAB_TRUST_PROXY: ${COLLAB_TRUST_PROXY:-true}
+    ports:
+      - "${COLLAB_PORT:-8240}:1234"
+    networks:
+      - learnhouse-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:1234/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8290}
+        NEXT_PUBLIC_COLLAB_WS_URL: ${PUBLIC_COLLAB_WS_URL:-ws://localhost:8240}
+        NEXT_PUBLIC_LEARNHOUSE_OSS: "true"
+        LEARNHOUSE_PUBLIC: "false"
+    container_name: learnhouse-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+      collab:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8290}
+      NEXT_PUBLIC_COLLAB_WS_URL: ${PUBLIC_COLLAB_WS_URL:-ws://localhost:8240}
+      NEXT_PUBLIC_LEARNHOUSE_OSS: "true"
+      LEARNHOUSE_API_URL: http://api:8000
+      LEARNHOUSE_PLATFORM_URL: ${FRONTEND_URL:-http://localhost:8280}
+    ports:
+      - "${WEB_PORT:-8280}:3000"
+    networks:
+      - learnhouse-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  learnhouse-net:
+    name: learnhouse-net
+    driver: bridge

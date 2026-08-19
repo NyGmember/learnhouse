@@ -25,8 +25,8 @@ ENV UV_COMPILE_BYTECODE=1 \
 WORKDIR /app
 
 # Dependencies first, in their own layer for efficient docker caching
-COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-install-project
+COPY pyproject.toml uv.lock* ./
+RUN uv sync --no-install-project
 
 # Copy the project into the image
 COPY . /app
@@ -36,7 +36,7 @@ ARG LEARNHOUSE_PUBLIC=false
 RUN if [ "$LEARNHOUSE_PUBLIC" = "true" ]; then rm -rf /app/ee; fi
 
 # Sync again so the lockfile is verified against the copied project
-RUN uv sync --frozen
+RUN uv sync
 
 # Ensure entrypoint script is executable
 RUN chmod +x /app/docker-entrypoint.sh

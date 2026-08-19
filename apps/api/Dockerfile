@@ -63,8 +63,8 @@ WORKDIR /app
 # Copy built application and virtual environment from builder
 COPY --from=builder /app /app
 
-# Ensure entrypoint script is executable
-RUN chmod +x /app/docker-entrypoint.sh
+# Ensure entrypoint script has Unix line endings and executable permissions
+RUN sed -i 's/\r$//' /app/docker-entrypoint.sh && chmod +x /app/docker-entrypoint.sh
 
 # Expose default API port
 EXPOSE 8000
@@ -74,4 +74,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:8000/api/v1/health || exit 1
 
 # Use entrypoint script
-ENTRYPOINT ["./docker-entrypoint.sh"]
+ENTRYPOINT ["/bin/bash", "/app/docker-entrypoint.sh"]

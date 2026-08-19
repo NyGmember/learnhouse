@@ -1,6 +1,5 @@
 import { cookies } from 'next/headers'
-
-const BACKEND_URL = (process.env.NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL || 'http://localhost:1338').replace(/\/+$/, '')
+import { getBackendUrl } from '@services/config/config'
 
 // Cookie names (must match the API routes)
 const ACCESS_TOKEN_COOKIE = 'LH_access'
@@ -49,7 +48,7 @@ export async function getServerSession(): Promise<Session | null> {
 
     if (accessToken?.value) {
       // Verify the token is valid by fetching session from backend
-      const sessionResponse = await fetch(`${BACKEND_URL}/api/v1/users/session`, {
+      const sessionResponse = await fetch(`${getBackendUrl().replace(/\/+$/, '')}/api/v1/users/session`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${accessToken.value}`,

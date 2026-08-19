@@ -1,8 +1,8 @@
-FROM oven/bun:1-alpine AS base
+FROM oven/bun:1-debian-slim AS base
 
 # Stage 1: Install dependencies only when needed
 FROM base AS deps
-RUN apk update && apk add --no-cache libc6-compat && rm -rf /var/cache/apk/*
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 COPY package.json bun.lock* ./

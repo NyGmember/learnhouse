@@ -166,19 +166,21 @@ const deriveAPIUrl = (): string => {
       process.env.LEARNHOUSE_API_URL ||
       process.env.LEARNHOUSE_BACKEND_URL
     if (serverInternalUrl) {
-      return `${serverInternalUrl.replace(/\/+$/, '')}/api/v1/`
+      const base = serverInternalUrl.replace(/\/+$/, '')
+      return base.endsWith('/api/v1') ? `${base}/` : `${base}/api/v1/`
     }
   }
-  // Backward compat: if explicit API URL is set, use it
+  // If explicit API URL is set
   const explicitApiUrl =
     getConfig('NEXT_PUBLIC_LEARNHOUSE_API_URL') ||
     getConfig('NEXT_PUBLIC_API_URL')
   if (explicitApiUrl) {
-    return explicitApiUrl.endsWith('/') ? explicitApiUrl : `${explicitApiUrl}/`
+    const base = explicitApiUrl.replace(/\/+$/, '')
+    return base.endsWith('/api/v1') ? `${base}/` : `${base}/api/v1/`
   }
   // Derive from backend URL
   const backendUrl = getLEARNHOUSE_BACKEND_URL().replace(/\/+$/, '')
-  return `${backendUrl}/api/v1/`
+  return backendUrl.endsWith('/api/v1') ? `${backendUrl}/` : `${backendUrl}/api/v1/`
 }
 
 // For direct usage, these call the getters

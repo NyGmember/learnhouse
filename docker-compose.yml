@@ -130,9 +130,13 @@ services:
       PORT: 3000
       HOSTNAME: 0.0.0.0
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8290}
+      NEXT_PUBLIC_LEARNHOUSE_API_URL: ${PUBLIC_API_URL:-http://localhost:8290}
       NEXT_PUBLIC_COLLAB_WS_URL: ${PUBLIC_COLLAB_WS_URL:-ws://localhost:8240}
+      NEXT_PUBLIC_COLLAB_URL: ${PUBLIC_COLLAB_WS_URL:-ws://localhost:8240}
       NEXT_PUBLIC_LEARNHOUSE_OSS: "true"
       LEARNHOUSE_API_URL: http://api:8000
+      LEARNHOUSE_BACKEND_URL: http://api:8000
+      LEARNHOUSE_INTERNAL_API_URL: http://api:8000
       LEARNHOUSE_PLATFORM_URL: ${FRONTEND_URL:-http://localhost:8280}
     ports:
       - "${WEB_PORT:-8280}:3000"

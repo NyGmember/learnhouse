@@ -82,7 +82,23 @@ const getCookieValue = (name: string): string | null => {
 // Dynamic config getters - these are functions to ensure runtime values are used
 const getLEARNHOUSE_HTTP_PROTOCOL = () =>
   (getConfig('NEXT_PUBLIC_LEARNHOUSE_HTTPS') === 'true') ? 'https://' : 'http://'
-const getLEARNHOUSE_BACKEND_URL = () => getConfig('NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL', 'http://localhost/')
+const getLEARNHOUSE_BACKEND_URL = () => {
+  // Server-side (Node.js runtime inside container): prioritize internal network URL
+  if (typeof window === 'undefined') {
+    const internalUrl =
+      process.env.LEARNHOUSE_INTERNAL_API_URL ||
+      process.env.LEARNHOUSE_API_URL ||
+      process.env.LEARNHOUSE_BACKEND_URL
+    if (internalUrl) {
+      return internalUrl.replace(/\/+$/, '')
+    }
+  }
+  return (
+    getConfig('NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL') ||
+    getConfig('NEXT_PUBLIC_API_URL') ||
+    'http://localhost:8290'
+  )
+}
 const getLEARNHOUSE_DOMAIN = () => {
   // 1. Env var (backward compat for existing deploys)
   const envVal = getConfig('NEXT_PUBLIC_LEARNHOUSE_DOMAIN')
@@ -143,9 +159,23 @@ export const isOnCustomDomain = (): boolean => {
 
 // Derive API URL from backend URL (with backward compat for NEXT_PUBLIC_LEARNHOUSE_API_URL)
 const deriveAPIUrl = (): string => {
+  // Server-side (Node.js runtime inside container): prioritize internal network URL
+  if (typeof window === 'undefined') {
+    const serverInternalUrl =
+      process.env.LEARNHOUSE_INTERNAL_API_URL ||
+      process.env.LEARNHOUSE_API_URL ||
+      process.env.LEARNHOUSE_BACKEND_URL
+    if (serverInternalUrl) {
+      return `${serverInternalUrl.replace(/\/+$/, '')}/api/v1/`
+    }
+  }
   // Backward compat: if explicit API URL is set, use it
-  const explicitApiUrl = getConfig('NEXT_PUBLIC_LEARNHOUSE_API_URL')
-  if (explicitApiUrl) return explicitApiUrl
+  const explicitApiUrl =
+    getConfig('NEXT_PUBLIC_LEARNHOUSE_API_URL') ||
+    getConfig('NEXT_PUBLIC_API_URL')
+  if (explicitApiUrl) {
+    return explicitApiUrl.endsWith('/') ? explicitApiUrl : `${explicitApiUrl}/`
+  }
   // Derive from backend URL
   const backendUrl = getLEARNHOUSE_BACKEND_URL().replace(/\/+$/, '')
   return `${backendUrl}/api/v1/`
@@ -427,7 +457,10 @@ export const isEEAvailable = (): boolean => {
 }
 
 // Collaboration server WebSocket URL
-export const getCollabUrl = () => getConfig('NEXT_PUBLIC_COLLAB_URL', 'ws://localhost:4000')
+export const getCollabUrl = () =>
+  getConfig('NEXT_PUBLIC_COLLAB_URL') ||
+  getConfig('NEXT_PUBLIC_COLLAB_WS_URL') ||
+  'ws://localhost:8240'
 
 export const getDefaultOrg = () => {
   // 1. Env var (backward compat)
